@@ -1,0 +1,81 @@
+!obj:pylearn2.train.Train {
+    dataset: &train !obj:dataset_wrapper.load_data {
+        features: %(features)s,
+        labels: %(labels)s,
+        start: %(start)i,
+        stop: %(stop)i
+    },
+    model: !obj:pylearn2.models.mlp.MLP {
+        batch_size: %(batch_size)i,
+        layers: [
+                 !obj:pylearn2.models.mlp.PretrainedLayer {
+                     layer_name: 'h1',
+                     layer_content: !pkl: "%(save_path)s/framework_1.pkl"
+                 },
+                 !obj:pylearn2.models.mlp.PretrainedLayer {
+                     layer_name: 'h2',
+                     layer_content: !pkl: "%(save_path)s/framework_2.pkl"
+                 },
+                 !obj:pylearn2.models.mlp.Softmax {
+                     max_col_norm: 1.9365,
+                     layer_name: 'y',
+                     n_classes: %(n_class)i,
+                     irange: .005
+                 }
+                ],
+        nvis: %(nvis)i, # need fix here 
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        learning_rate: 1e-1,
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+            init_momentum: .5,
+        },
+        monitoring_dataset:
+            {
+                'train' : *train,
+                'test'  : !obj:dataset_wrapper.load_data {
+                    features: 'test_features.npy',
+                    labels: 'test_labels.npy',
+                    start: %(test_start)i,
+                    stop: %(test_stop)i
+                },
+            },
+#        cost: !obj:pylearn2.costs.mlp.Default {},
+        cost: !obj:pylearn2.costs.mlp.dropout.Dropout {
+            input_include_probs: {'h1': .8, 'h2' : .8, 'y' : .8},
+            input_scales: {'h1' : 2.0, 'h2' : 2.0, 'y' : 2.0}
+        },
+        train_iteration_mode: even_shuffled_sequential,
+        monitor_iteration_mode: even_shuffled_sequential,
+        termination_criterion: !obj:pylearn2.termination_criteria.And {
+            criteria: [
+                !obj:pylearn2.termination_criteria.MonitorBased {
+                    #channel_name: "test_y_misclass",
+                    channel_name: "train_y_misclass",
+                    prop_decrease: 0.,
+                    N: 80
+                },
+                !obj:pylearn2.termination_criteria.EpochCounter {
+                    max_epochs: %(max_epochs)i
+                }
+            ]
+        },
+        update_callbacks: !obj:pylearn2.training_algorithms.sgd.ExponentialDecay {
+            decay_factor: 1.00004,
+            min_lr: .000001
+        }
+    },
+    extensions: [
+        !obj:pylearn2.training_algorithms.learning_rule.MomentumAdjustor {
+            start: 1,
+            saturate: 250,
+            final_momentum: .7
+        },
+        !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
+            channel_name: 'test_objective',
+            save_path: "./framework_best.pkl"
+        }
+    ],
+    save_path: "./framework_top.pkl",
+    save_freq: 1
+}
