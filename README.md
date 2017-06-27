@@ -1,2 +1,4 @@
 # Protein-Function-Prediction
-"The Prediction of Certain Protein Function by Homogeneity Sequences Using Deep Neural Network Approach" as Master Project, Using PyLearn2
+# "The Prediction of Certain Protein Function by Homogeneity Sequences Using Deep Neural Network Approach" as Master Project, Using PyLearn2
+Read ./docs for more information abouting running and testing.
+
